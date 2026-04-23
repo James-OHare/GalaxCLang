@@ -1,0 +1,20 @@
+[package]
+name = "galaxc-dbg"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Interactive debugger for GalaxC programs"
+
+[[bin]]
+name = "galaxc-dbg"
+path = "src/main.rs"
+
+[dependencies]
+galaxc = { path = "../galaxc" }
+clap = { workspace = true }
+colored = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

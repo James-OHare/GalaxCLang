@@ -1,0 +1,43 @@
+--! Data modeling with structs, enums, and pattern matching.
+
+orbit main
+
+struct CrewMember =>
+    name: Text
+    role: Text
+    hours_in_space: Int
+end
+
+enum CelestialBody =>
+    Star(name: Text, mass_solar: Float64)
+    Planet(name: Text, orbital_period_days: Float64)
+    Moon(name: Text, parent: Text)
+    Asteroid(designation: Text)
+end
+
+op describe(body: CelestialBody) -> Text =>
+    match body =>
+        CelestialBody.Star(name, mass) =>
+            return name ++ ": star"
+        end
+        CelestialBody.Planet(name, period) =>
+            return name ++ ": planet"
+        end
+        CelestialBody.Moon(name, parent) =>
+            return name ++ ": moon of " ++ parent
+        end
+        CelestialBody.Asteroid(id) =>
+            return "Asteroid " ++ id
+        end
+    end
+end
+
+@effect(io)
+op launch() =>
+    let earth = CelestialBody.Planet(
+        name: "Earth",
+        orbital_period_days: 365.25,
+    )
+    let desc = describe(earth)
+    console.write(desc)
+end

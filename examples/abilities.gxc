@@ -1,0 +1,37 @@
+--! Ability (trait) definitions and implementations.
+
+orbit main
+
+ability Displayable =>
+    op display(self) -> Text
+end
+
+ability Measurable =>
+    op measure(self) -> Float64
+end
+
+struct Temperature =>
+    value: Float64
+    unit: Text
+end
+
+impl Displayable for Temperature =>
+    op display(self) -> Text =>
+        return "Temperature reading"
+    end
+end
+
+impl Measurable for Temperature =>
+    op measure(self) -> Float64 =>
+        return self.value
+    end
+end
+
+@effect(io)
+op launch() =>
+    let temp = Temperature {
+        value: 293.15,
+        unit: "kelvin",
+    }
+    console.write("Abilities example complete")
+end

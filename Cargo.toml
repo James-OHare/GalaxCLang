@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/galaxc",
+    "crates/galaxc-cli",
+    "crates/galaxc-dbg",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["The GalaxC Authors"]
+license = "MIT"
+repository = "https://github.com/galaxc-lang/galaxc"
+description = "The GalaxC programming language compiler and toolchain"
+
+[workspace.dependencies]
+# Shared dependencies across crates
+clap = { version = "4", features = ["derive", "color"] }
+colored = "2"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+indexmap = "2"
+ariadne = "0.4"
+logos = "0.14"
+ratatui = "0.29"
+crossterm = "0.28"
+tempfile = "3"
+which = "7"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true

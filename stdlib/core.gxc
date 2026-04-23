@@ -1,0 +1,51 @@
+--! GalaxC Core Module
+--! Provides fundamental types: Option, Result, Bool, Int, Float, Text, Bytes.
+--! These types are built into the compiler and available in every program.
+
+orbit core
+
+--- The Option type represents a value that may or may not be present.
+--- Use `some(value)` to wrap a present value and `none` for absence.
+enum Option<T> =>
+    Some(value: T)
+    None
+end
+
+--- The Result type represents an operation that may succeed or fail.
+--- Use `ok(value)` for success and `err(error)` for failure.
+enum Result<T, E> =>
+    Ok(value: T)
+    Err(error: E)
+end
+
+--- Ordering type for comparison results.
+enum Ordering =>
+    Less
+    Equal
+    Greater
+end
+
+--- The Displayable ability allows a value to be converted to text.
+ability Displayable =>
+    op display(self) -> Text
+end
+
+--- The Eq ability allows values to be compared for equality.
+ability Eq =>
+    op eq(self, other: Self) -> Bool
+end
+
+--- The Ord ability allows values to be ordered.
+ability Ord =>
+    op cmp(self, other: Self) -> Ordering
+end
+
+--- The Clone ability allows values to be duplicated.
+ability Clone =>
+    op clone(self) -> Self
+end
+
+--- The Default ability provides a default value for a type.
+ability Default =>
+    op default() -> Self
+end

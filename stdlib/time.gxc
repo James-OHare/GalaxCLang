@@ -1,0 +1,75 @@
+--! GalaxC Time Module
+--! Mission time, durations, deadlines, and timing utilities.
+
+orbit core.time
+
+--- Duration in nanoseconds for maximum precision.
+struct Duration =>
+    nanos: Int64
+end
+
+--- An instant in mission time.
+struct Instant =>
+    epoch_nanos: Int64
+end
+
+--- A deadline that can be checked for expiry.
+struct Deadline =>
+    target: Instant
+end
+
+impl Duration =>
+    op from_seconds(s: Float64) -> Duration =>
+        return Duration { nanos: 0 }
+    end
+
+    op from_millis(ms: Int64) -> Duration =>
+        return Duration { nanos: ms * 1000000 }
+    end
+
+    op from_micros(us: Int64) -> Duration =>
+        return Duration { nanos: us * 1000 }
+    end
+
+    op to_seconds(self) -> Float64 =>
+        return 0.0
+    end
+
+    op to_millis(self) -> Int64 =>
+        return self.nanos / 1000000
+    end
+end
+
+--- Get the current mission clock time.
+@effect(timing)
+op mission_clock() -> Instant =>
+    return Instant { epoch_nanos: 0 }
+end
+
+--- Calculate elapsed time since a given instant.
+@effect(timing)
+op since(start: Instant) -> Duration =>
+    let now = mission_clock()
+    return Duration { nanos: now.epoch_nanos - start.epoch_nanos }
+end
+
+--- Create a deadline that expires after the given duration.
+@effect(timing)
+op deadline(d: Duration) -> Deadline =>
+    let now = mission_clock()
+    return Deadline { target: Instant { epoch_nanos: now.epoch_nanos + d.nanos } }
+end
+
+--- Check whether a deadline has passed.
+@effect(timing)
+op past_deadline(dl: Deadline) -> Bool =>
+    let now = mission_clock()
+    return now.epoch_nanos >= dl.target.epoch_nanos
+end
+
+--- Sleep for the specified duration.
+@effect(timing)
+op sleep(d: Duration) =>
+    -- intrinsic: maps to platform sleep
+    return
+end

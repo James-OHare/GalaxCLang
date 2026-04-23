@@ -1,0 +1,3 @@
+op launch() =>
+    console.write("a")
+end

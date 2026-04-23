@@ -1,0 +1,40 @@
+--! Mission control loop with safe mode transitions.
+
+orbit main
+
+dock core.time
+
+enum SystemMode =>
+    Nominal
+    Degraded(reason: Text)
+    SafeMode
+end
+
+@effect(io, timing)
+@watchdog(timeout: 10)
+op launch() =>
+    var mode = SystemMode.Nominal
+    var cycles: Int = 0
+
+    loop =>
+        match mode =>
+            SystemMode.Nominal =>
+                console.write("Systems nominal")
+            end
+            SystemMode.Degraded(reason) =>
+                console.write("Degraded: attempting recovery")
+                mode = SystemMode.Nominal
+            end
+            SystemMode.SafeMode =>
+                console.write("Safe mode: minimal operations")
+            end
+        end
+
+        cycles = cycles + 1
+        if cycles >= 5 =>
+            break
+        end
+    end
+
+    console.write("Control loop completed")
+end

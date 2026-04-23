@@ -1,0 +1,18 @@
+[package]
+name = "galaxc"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core compiler library for the GalaxC programming language"
+
+[dependencies]
+thiserror = { workspace = true }
+colored = { workspace = true }
+serde = { workspace = true }
+indexmap = { workspace = true }
+ariadne = { workspace = true }
+logos = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

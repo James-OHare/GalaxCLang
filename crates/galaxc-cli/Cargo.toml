@@ -1,0 +1,18 @@
+[package]
+name = "galaxc-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Command-line interface for the GalaxC compiler"
+
+[[bin]]
+name = "galaxc"
+path = "src/main.rs"
+
+[dependencies]
+galaxc = { path = "../galaxc" }
+clap = { workspace = true }
+colored = { workspace = true }
+which = { workspace = true }
+tempfile = { workspace = true }

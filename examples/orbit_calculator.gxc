@@ -1,0 +1,48 @@
+--! Orbit calculator: computes Hohmann transfer parameters
+--! between two circular orbits around Earth.
+
+orbit main
+
+dock core.math
+
+const EARTH_MU: Float64 = 3.986004418e14
+
+struct TransferResult =>
+    delta_v1: Float64
+    delta_v2: Float64
+    total_delta_v: Float64
+    transfer_time: Float64
+end
+
+op hohmann_transfer(r1: Float64, r2: Float64) -> TransferResult =>
+    let a_transfer = (r1 + r2) / 2.0
+
+    let v1 = math.sqrt(EARTH_MU / r1)
+    let v2 = math.sqrt(EARTH_MU / r2)
+
+    let v_transfer_1 = math.sqrt(EARTH_MU * (2.0 / r1 - 1.0 / a_transfer))
+    let v_transfer_2 = math.sqrt(EARTH_MU * (2.0 / r2 - 1.0 / a_transfer))
+
+    let dv1 = math.abs(v_transfer_1 - v1)
+    let dv2 = math.abs(v2 - v_transfer_2)
+
+    let t_transfer = math.PI * math.sqrt(
+        a_transfer * a_transfer * a_transfer / EARTH_MU
+    )
+
+    return TransferResult {
+        delta_v1: dv1,
+        delta_v2: dv2,
+        total_delta_v: dv1 + dv2,
+        transfer_time: t_transfer,
+    }
+end
+
+@effect(io)
+op launch() =>
+    let leo = 6571000.0
+    let geo = 42164000.0
+    let result = hohmann_transfer(leo, geo)
+    console.write("Hohmann Transfer LEO -> GEO")
+    console.write("Computed successfully.")
+end

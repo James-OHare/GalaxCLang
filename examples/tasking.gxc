@@ -1,0 +1,48 @@
+--! Ada-style tasking example with rendezvous communication.
+
+orbit main
+
+dock core.time
+dock core.sync
+
+task SensorPoller =>
+    @entry op poll() -> Result<Float64, SensorError>
+    @entry op get_status() -> Text
+    @entry op shutdown()
+end
+
+task body SensorPoller(sensor_id: Int, interval: Int) =>
+    var status: Text = "running"
+
+    loop =>
+        select =>
+            accept poll() =>
+                return ok(42.0)
+            end
+
+            or accept get_status() =>
+                return status
+            end
+
+            or accept shutdown() =>
+                status = "stopped"
+                break
+            end
+
+            or delay interval =>
+                console.write("Background poll")
+            end
+        end
+    end
+end
+
+enum SensorError =>
+    Timeout
+    HardwareFault(code: Int)
+end
+
+@effect(io, timing)
+op launch() =>
+    console.write("Tasking example (syntax demonstration)")
+    console.write("Task declarations parse correctly.")
+end

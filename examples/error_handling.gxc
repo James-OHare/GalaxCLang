@@ -1,0 +1,31 @@
+--! Error handling patterns in GalaxC.
+
+orbit main
+
+enum SensorError =>
+    Timeout
+    OutOfRange(value: Float64, min: Float64, max: Float64)
+    HardwareFault(code: Int)
+end
+
+op read_sensor(id: Int) -> Result<Float64, SensorError> =>
+    if id < 0 =>
+        return err(SensorError.HardwareFault(code: id))
+    end
+    return ok(42.0)
+end
+
+@effect(io)
+op launch() =>
+    match read_sensor(1) =>
+        Result.Ok(value) =>
+            console.write("Sensor reading successful")
+        end
+        Result.Err(SensorError.Timeout) =>
+            console.write("Sensor timed out")
+        end
+        Result.Err(e) =>
+            console.write("Sensor error occurred")
+        end
+    end
+end

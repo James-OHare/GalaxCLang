@@ -1,0 +1,38 @@
+# Build artifacts
+/target/
+/build/
+/out/
+
+# Rust
+**/*.rs.bk
+Cargo.lock
+
+# Generated C output
+*.generated.c
+*.generated.h
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Debug
+*.pdb
+*.dSYM/
+
+# Test artifacts
+/tests/output/
+/tests/tmp/
+
+# Coverage
+/coverage/
+*.gcda
+*.gcno
+*.gcov

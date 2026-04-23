@@ -1,0 +1,5 @@
+orbit main
+
+op launch() =>
+    console.write("GalaxC online. All systems nominal.")
+end

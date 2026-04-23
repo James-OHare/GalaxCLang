@@ -1,0 +1,22 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\.gxc]
+@="GalaxC.SourceFile"
+"Content Type"="text/plain"
+"PerceivedType"="text"
+
+[HKEY_CLASSES_ROOT\GalaxC.SourceFile]
+@="GalaxC Source File"
+
+[HKEY_CLASSES_ROOT\GalaxC.SourceFile\DefaultIcon]
+@="imageres.dll,-102"
+
+[HKEY_CLASSES_ROOT\GalaxC.SourceFile\shell]
+
+[HKEY_CLASSES_ROOT\GalaxC.SourceFile\shell\open]
+
+[HKEY_CLASSES_ROOT\GalaxC.SourceFile\shell\open\command]
+@="\"C:\\Windows\\System32\\notepad.exe\" \"%1\""
+
+; If VS Code is installed, it will typically override this anyway, 
+; but this makes the file recognized by the system.

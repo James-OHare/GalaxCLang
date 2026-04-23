@@ -1,0 +1,36 @@
+{
+  "name": "galaxc-vscode",
+  "displayName": "GalaxC",
+  "icon": "icon.svg",
+  "description": "Syntax highlighting and language support for the GalaxC programming language.",
+  "version": "0.1.0",
+  "publisher": "galaxc-lang",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "galaxc",
+        "aliases": [
+          "GalaxC",
+          "galaxc"
+        ],
+        "extensions": [
+          ".gxc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "galaxc",
+        "scopeName": "source.gxc",
+        "path": "./syntaxes/galaxc.tmLanguage.json"
+      }
+    ]
+  }
+}

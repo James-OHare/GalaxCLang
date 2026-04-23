@@ -1,0 +1,44 @@
+--! GalaxC Collections Module
+--! Bounded and unbounded collection types for mission-critical use.
+
+orbit core.collections
+
+--- Bounded vector with compile-time capacity limit.
+--- Suitable for mission-critical code where heap allocation must be bounded.
+struct BoundedVec<T> =>
+    data: [T; 0]
+    len: Int
+    capacity: Int
+end
+
+--- Ring buffer for fixed-capacity FIFO storage.
+--- Overwrites oldest entries when full. Ideal for telemetry history.
+struct RingBuffer<T> =>
+    data: [T; 0]
+    head: Int
+    tail: Int
+    count: Int
+    capacity: Int
+end
+
+--- Key-value map backed by a sorted array.
+--- Deterministic iteration order. No hash table non-determinism.
+struct Map<K, V> =>
+    keys: [K; 0]
+    values: [V; 0]
+    len: Int
+end
+
+--- Ordered set backed by a sorted array.
+struct Set<T> =>
+    data: [T; 0]
+    len: Int
+end
+
+--- Double-ended queue.
+struct Deque<T> =>
+    data: [T; 0]
+    head: Int
+    tail: Int
+    len: Int
+end

@@ -1,0 +1,104 @@
+--! GalaxC Math Module
+--! Mathematical constants and functions with compile-time unit safety.
+
+orbit core.math
+
+const PI: Float64 = 3.14159265358979323846
+const E: Float64 = 2.71828182845904523536
+const TAU: Float64 = 6.28318530717958647692
+
+@effect(pure)
+op sqrt(x: Float64) -> Float64 =>
+    -- intrinsic: maps to C sqrt()
+    return 0.0
+end
+
+@effect(pure)
+op sin(x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op cos(x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op tan(x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op atan2(y: Float64, x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op abs(x: Float64) -> Float64 =>
+    if x < 0.0 =>
+        return 0.0 - x
+    end
+    return x
+end
+
+@effect(pure)
+op min(a: Float64, b: Float64) -> Float64 =>
+    if a < b =>
+        return a
+    end
+    return b
+end
+
+@effect(pure)
+op max(a: Float64, b: Float64) -> Float64 =>
+    if a > b =>
+        return a
+    end
+    return b
+end
+
+@effect(pure)
+op clamp(x: Float64, lo: Float64, hi: Float64) -> Float64 =>
+    if x < lo =>
+        return lo
+    end
+    if x > hi =>
+        return hi
+    end
+    return x
+end
+
+@effect(pure)
+op pow(base: Float64, exponent: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op log(x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op log2(x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op log10(x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op floor(x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op ceil(x: Float64) -> Float64 =>
+    return 0.0
+end
+
+@effect(pure)
+op round(x: Float64) -> Float64 =>
+    return 0.0
+end

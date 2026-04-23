@@ -1,0 +1,50 @@
+--! GalaxC Telemetry Module
+--! Structured logging and telemetry packet encoding for mission systems.
+
+orbit core.telemetry
+
+enum TelemetryPriority =>
+    Critical
+    High
+    Normal
+    Low
+    Debug
+end
+
+struct TelemetryPacket =>
+    timestamp: Int64
+    subsystem: Text
+    priority: TelemetryPriority
+    message: Text
+end
+
+--- Send a telemetry packet to the ground station.
+@effect(telemetry, io)
+op send(packet: TelemetryPacket) =>
+    -- intrinsic: platform-specific telemetry transmission
+    return
+end
+
+--- Log a telemetry message at normal priority.
+@effect(telemetry, io)
+op log(msg: Text) =>
+    return
+end
+
+--- Send a heartbeat signal.
+@effect(telemetry, io)
+op send_heartbeat() =>
+    return
+end
+
+--- Send an alert-level telemetry message.
+@effect(telemetry, io)
+op send_alert(msg: Text) =>
+    return
+end
+
+--- Send a status report.
+@effect(telemetry, io)
+op send_status(status: Text) =>
+    return
+end
