@@ -42,6 +42,55 @@
         "path": "snippets/galaxc.json"
       }
     ],
+    "commands": [
+      {
+        "command": "galaxc.createFile",
+        "title": "GalaxC: Create New Program",
+        "category": "GalaxC"
+      },
+      {
+        "command": "galaxc.runFile",
+        "title": "GalaxC: Run current file",
+        "category": "GalaxC"
+      },
+      {
+        "command": "galaxc.buildFile",
+        "title": "GalaxC: Build current file",
+        "category": "GalaxC"
+      },
+      {
+        "command": "galaxc.initProject",
+        "title": "GalaxC: Initialize New Project",
+        "category": "GalaxC"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "galaxc.runFile",
+        "key": "f5",
+        "when": "editorLangId == galaxc"
+      },
+      {
+        "command": "galaxc.buildFile",
+        "key": "ctrl+shift+b",
+        "when": "editorLangId == galaxc"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "galaxc.runFile",
+          "group": "navigation",
+          "when": "editorLangId == galaxc"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "galaxc.initProject",
+          "group": "navigation"
+        }
+      ]
+    },
     "problemMatchers": [
       {
         "name": "galaxc",

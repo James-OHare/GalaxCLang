@@ -41,6 +41,79 @@ function activate(context) {
             new GalaxCSymbolProvider()
         )
     );
+
+    // Command: Run Current File
+    context.subscriptions.push(
+        vscode.commands.registerCommand('galaxc.runFile', () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document.languageId === 'galaxc') {
+                const terminal = vscode.window.createTerminal('GalaxC Run');
+                terminal.show();
+                terminal.sendText(`galaxc run "${editor.document.fileName}"`);
+            }
+        })
+    );
+
+    // Command: Build Current File
+    context.subscriptions.push(
+        vscode.commands.registerCommand('galaxc.buildFile', () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document.languageId === 'galaxc') {
+                const terminal = vscode.window.createTerminal('GalaxC Build');
+                terminal.show();
+                terminal.sendText(`galaxc build "${editor.document.fileName}"`);
+            }
+        })
+    );
+
+    // Command: Create New File
+    context.subscriptions.push(
+        vscode.commands.registerCommand('galaxc.createFile', async () => {
+            const uri = await vscode.window.showSaveDialog({
+                defaultUri: vscode.Uri.file('program.gxc'),
+                filters: { 'GalaxC': ['gxc'] }
+            });
+            if (uri) {
+                const content = 'orbit main\n\n@effect(io)\nop launch() =>\n    console.write("Hello, World!")\nend\n';
+                await vscode.workspace.fs.writeFile(uri, Buffer.from(content));
+                const doc = await vscode.workspace.openTextDocument(uri);
+                await vscode.window.showTextDocument(doc);
+            }
+        })
+    );
+
+    // Command: Init Project
+    context.subscriptions.push(
+        vscode.commands.registerCommand('galaxc.initProject', async (uri) => {
+            const name = await vscode.window.showInputBox({ 
+                prompt: 'Enter project name',
+                placeHolder: 'mission_alpha'
+            });
+            if (name) {
+                const terminal = vscode.window.createTerminal('GalaxC Init');
+                terminal.show();
+                terminal.sendText(`galaxc init ${name}`);
+            }
+        })
+    );
+
+    // Status bar item for run
+    const runBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    runBtn.command = 'galaxc.runFile';
+    runBtn.text = '$(play) Run GalaxC';
+    runBtn.tooltip = 'Compile and run current GalaxC file';
+    context.subscriptions.push(runBtn);
+
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(e => {
+        if (e && e.document.languageId === 'galaxc') {
+            runBtn.show();
+        } else {
+            runBtn.hide();
+        }
+    }));
+    if (vscode.window.activeTextEditor?.document.languageId === 'galaxc') {
+        runBtn.show();
+    }
 }
 
 /**
