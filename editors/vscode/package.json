@@ -31,6 +31,12 @@
         "scopeName": "source.galaxc",
         "path": "syntaxes/galaxc.tmLanguage.json"
       }
+    ],
+    "snippets": [
+      {
+        "language": "galaxc",
+        "path": "snippets/galaxc.json"
+      }
     ]
   }
 }

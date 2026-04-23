@@ -1,0 +1,97 @@
+{
+  "Operation": {
+    "prefix": "op",
+    "body": [
+      "op ${1:name}(${2:params}) -> ${3:Type} =>",
+      "    ${0:-- code}",
+      "end"
+    ],
+    "description": "Define a new operation"
+  },
+  "Struct": {
+    "prefix": "struct",
+    "body": [
+      "struct ${1:Name} =>",
+      "    ${2:field}: ${3:Type}",
+      "end"
+    ],
+    "description": "Define a new struct"
+  },
+  "Enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name} =>",
+      "    ${2:Variant}",
+      "end"
+    ],
+    "description": "Define a new enum"
+  },
+  "Match": {
+    "prefix": "match",
+    "body": [
+      "match ${1:value} =>",
+      "    ${2:Variant} =>",
+      "        ${0:-- code}",
+      "    end",
+      "end"
+    ],
+    "description": "Pattern match on a value"
+  },
+  "If": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition} =>",
+      "    ${2:-- code}",
+      "else =>",
+      "    ${0:-- code}",
+      "end"
+    ],
+    "description": "If-else conditional"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for ${1:item} in ${2:iterator} =>",
+      "    ${0:-- code}",
+      "end"
+    ],
+    "description": "For-in loop"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition} =>",
+      "    ${0:-- code}",
+      "end"
+    ],
+    "description": "While loop"
+  },
+  "Task": {
+    "prefix": "task",
+    "body": [
+      "task ${1:Name} =>",
+      "    entry ${2:EntryName}(${3:params})",
+      "end"
+    ],
+    "description": "Declare a concurrent task"
+  },
+  "Console Write": {
+    "prefix": "cw",
+    "body": [
+      "console.write(\"${1:message}\")"
+    ],
+    "description": "Write to console"
+  },
+  "Main Orbit": {
+    "prefix": "orbit_main",
+    "body": [
+      "orbit main",
+      "",
+      "@effect(io)",
+      "op launch() =>",
+      "    console.write(\"GalaxC online. All systems nominal.\")",
+      "end"
+    ],
+    "description": "Main module template"
+  }
+}

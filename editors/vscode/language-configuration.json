@@ -22,7 +22,14 @@
         { "open": "'", "close": "'" }
     ],
     "indentationRules": {
-        "increaseIndentPattern": "^\\s*(op|struct|enum|task|task body|protected|unit|match|select|if|else|while|loop|for|accept|try|catch)\\b.*(=>|\\{)\\s*$",
+        "increaseIndentPattern": "^\\s*(op|struct|enum|task|task body|protected|unit|match|select|if|else|while|loop|for|accept|try|catch|impl|ability)\\b.*(=>|\\{)\\s*$",
         "decreaseIndentPattern": "^\\s*(end|\\})\\s*$"
-    }
+    },
+    "folding": {
+        "markers": {
+            "start": "^\\s*(op|struct|enum|task|protected|unit|match|select|if|while|loop|for|impl|ability)\\b.*=>",
+            "end": "^\\s*end\\b"
+        }
+    },
+    "wordPattern": "[a-zA-Z_][a-zA-Z0-9_]*"
 }
