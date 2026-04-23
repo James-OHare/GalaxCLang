@@ -10,13 +10,19 @@ use crate::diagnostics::Diagnostic;
 /// Run the type checker on a parsed program. Returns the validated AST
 /// (unchanged for now -- full typed-AST annotation is a future pass)
 /// or a list of type errors.
-pub fn check(program: &Program) -> Result<Program, Vec<Diagnostic>> {
+pub fn check(program: &Program, filename: &str) -> Result<Program, Vec<Diagnostic>> {
     let mut checker = TypeChecker::new();
     checker.check_program(program);
 
     if checker.errors.is_empty() {
         Ok(program.clone())
     } else {
+        // Attach filename to all diagnostics that don't have one
+        for diag in &mut checker.errors {
+            if diag.filename.is_none() {
+                diag.filename = Some(filename.to_string());
+            }
+        }
         Err(checker.errors)
     }
 }

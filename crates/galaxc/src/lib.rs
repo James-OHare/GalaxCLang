@@ -40,7 +40,7 @@ pub fn compile(source: &str, filename: &str) -> Result<String, Vec<diagnostics::
     };
 
     // Phase 3: Type Checking
-    let typed_ast = match checker::check(&ast) {
+    let typed_ast = match checker::check(&ast, filename) {
         Ok(checked) => checked,
         Err(errors) => {
             all_diagnostics.extend(errors);
@@ -69,7 +69,7 @@ pub fn check_only(source: &str, filename: &str) -> Result<(), Vec<diagnostics::D
         Err(errors) => return Err(errors),
     };
 
-    match checker::check(&ast) {
+    match checker::check(&ast, filename) {
         Ok(_) => Ok(()),
         Err(errors) => Err(errors),
     }
@@ -87,7 +87,7 @@ pub fn emit_ir(source: &str, filename: &str) -> Result<String, Vec<diagnostics::
         Err(errors) => return Err(errors),
     };
 
-    let typed_ast = match checker::check(&ast) {
+    let typed_ast = match checker::check(&ast, filename) {
         Ok(checked) => checked,
         Err(errors) => return Err(errors),
     };

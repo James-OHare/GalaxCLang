@@ -8,13 +8,17 @@ function activate(context) {
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('galaxc');
     context.subscriptions.push(diagnosticCollection);
 
-    // Diagnostics
+    // Diagnostics (Throttled)
+    let timeout;
     context.subscriptions.push(
         vscode.workspace.onDidSaveTextDocument((doc) => {
             if (doc.languageId === 'galaxc') runGalaxCCheck(doc, diagnosticCollection);
         }),
-        vscode.workspace.onDidOpenTextDocument((doc) => {
-            if (doc.languageId === 'galaxc') runGalaxCCheck(doc, diagnosticCollection);
+        vscode.workspace.onDidChangeTextDocument((e) => {
+            if (e.document.languageId === 'galaxc') {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => runGalaxCCheck(e.document, diagnosticCollection), 1000);
+            }
         })
     );
     if (vscode.window.activeTextEditor?.document.languageId === 'galaxc') {
@@ -28,6 +32,9 @@ function activate(context) {
 
     // Commands
     context.subscriptions.push(
+        vscode.commands.registerCommand('galaxc.checkFile', () => {
+            if (vscode.window.activeTextEditor) runGalaxCCheck(vscode.window.activeTextEditor.document, diagnosticCollection);
+        }),
         vscode.commands.registerCommand('galaxc.runFile', () => runInTerminal('Run', 'run')),
         vscode.commands.registerCommand('galaxc.buildFile', () => runInTerminal('Build', 'build')),
         vscode.commands.registerCommand('galaxc.debugFile', () => runInTerminal('Debug', 'debug')),
@@ -48,7 +55,6 @@ function runInTerminal(name, subcmd) {
     if (!editor || editor.document.languageId !== 'galaxc') return;
     const terminal = vscode.window.createTerminal(`GalaxC ${name}`);
     terminal.show();
-    // For debug, we use galaxc-dbg specifically
     const bin = subcmd === 'debug' ? 'galaxc-dbg' : 'galaxc';
     const args = subcmd === 'debug' ? '' : subcmd;
     terminal.sendText(`${bin} ${args} "${editor.document.fileName}"`);
@@ -73,7 +79,13 @@ async function initProject() {
 }
 
 function runGalaxCCheck(document, collection) {
+    // Attempt to run from path
     exec(`galaxc check "${document.fileName}"`, (err, stdout, stderr) => {
+        if (err && err.code === 'ENOENT') {
+            vscode.window.showErrorMessage("'galaxc' compiler not found in PATH. Please install it with 'cargo install --path crates/galaxc-cli'.");
+            return;
+        }
+
         collection.delete(document.uri);
         const output = (stdout + stderr).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
         const diagnostics = [];
@@ -81,14 +93,19 @@ function runGalaxCCheck(document, collection) {
         let currentSev = vscode.DiagnosticSeverity.Error;
 
         output.split(/\r?\n/).forEach(line => {
-            const m = line.trim().match(/^(error|warning): (.+)$/i);
+            const raw = line.trim();
+            // Match "error: message" or "warning: message"
+            const m = raw.match(/^(error|warning): (.+)$/i);
             if (m) {
                 currentMsg = m[2];
                 currentSev = m[1].toLowerCase() === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error;
             } else {
-                const l = line.trim().match(/^-->\s+(.+):(\d+):(\d+)$/);
+                // Match "--> file:line:col" (handle DRIVE:\path and relative paths)
+                const l = raw.match(/^-->\s+(.+):(\d+):(\d+)$/);
                 if (l && currentMsg) {
-                    const range = new vscode.Range(parseInt(l[2]) - 1, parseInt(l[3]) - 1, parseInt(l[2]) - 1, parseInt(l[3]) + 5);
+                    const lineIdx = parseInt(l[2]) - 1;
+                    const colIdx = parseInt(l[3]) - 1;
+                    const range = new vscode.Range(lineIdx, colIdx, lineIdx, colIdx + 5);
                     diagnostics.push(new vscode.Diagnostic(range, currentMsg, currentSev));
                     currentMsg = null;
                 }
