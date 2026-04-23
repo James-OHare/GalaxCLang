@@ -11,9 +11,6 @@
   "categories": [
     "Programming Languages"
   ],
-  "activationEvents": [
-    "onLanguage:galaxc"
-  ],
   "contributes": {
     "languages": [
       {
@@ -31,7 +28,7 @@
     "grammars": [
       {
         "language": "galaxc",
-        "scopeName": "source.gxc",
+        "scopeName": "source.galaxc",
         "path": "syntaxes/galaxc.tmLanguage.json"
       }
     ]
