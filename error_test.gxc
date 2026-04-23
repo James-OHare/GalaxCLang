@@ -1,5 +1,0 @@
-orbit error_test
-
-op main() =>
-    let x: Int = "string" -- error: mismatch
-end
