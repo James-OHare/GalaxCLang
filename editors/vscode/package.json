@@ -2,12 +2,16 @@
   "name": "galaxc-vscode",
   "displayName": "GalaxC",
   "icon": "icon.svg",
-  "description": "Syntax highlighting and language support for the GalaxC programming language.",
+  "description": "Premium mission-grade language support for GalaxC, including real-time diagnostics, advanced syntax highlighting, and intellisense.",
   "version": "0.1.0",
   "publisher": "galaxc-lang",
+  "main": "./src/extension.js",
   "engines": {
     "vscode": "^1.70.0"
   },
+  "activationEvents": [
+    "onLanguage:galaxc"
+  ],
   "categories": [
     "Programming Languages"
   ],
@@ -36,6 +40,28 @@
       {
         "language": "galaxc",
         "path": "snippets/galaxc.json"
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "galaxc",
+        "owner": "galaxc",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}"
+        ],
+        "pattern": [
+          {
+            "regexp": "^error: (.+)$",
+            "message": 1
+          },
+          {
+            "regexp": "^\\s*--> (.+):(\\d+):(\\d+)$",
+            "file": 1,
+            "line": 2,
+            "column": 3
+          }
+        ]
       }
     ]
   }
