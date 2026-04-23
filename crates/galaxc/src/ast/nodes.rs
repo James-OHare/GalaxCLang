@@ -49,7 +49,7 @@ pub enum ImportNames {
 /// Any top-level item (function, struct, enum, etc.)
 #[derive(Debug, Clone)]
 pub enum Item {
-    Function(FunctionDecl),
+    Op(OpDecl),
     Struct(StructDecl),
     Enum(EnumDecl),
     Ability(AbilityDecl),
@@ -66,7 +66,7 @@ pub enum Item {
 impl Item {
     pub fn span(&self) -> Span {
         match self {
-            Item::Function(f) => f.span,
+            Item::Op(f) => f.span,
             Item::Struct(s) => s.span,
             Item::Enum(e) => e.span,
             Item::Ability(a) => a.span,
@@ -82,12 +82,13 @@ impl Item {
     }
 }
 
-// -- Functions --
+// -- Operations (Functions) --
 
 #[derive(Debug, Clone)]
-pub struct FunctionDecl {
+pub struct OpDecl {
     pub name: String,
     pub annotations: Vec<Annotation>,
+    pub effects: Vec<String>,
     pub generics: Vec<GenericParam>,
     pub params: Vec<Param>,
     pub return_type: Option<TypeExpr>,
@@ -251,7 +252,7 @@ pub struct VariantDecl {
 pub struct AbilityDecl {
     pub name: String,
     pub generics: Vec<GenericParam>,
-    pub methods: Vec<FunctionDecl>,
+    pub methods: Vec<OpDecl>,
     pub constants: Vec<ConstDecl>,
     pub is_pub: bool,
     pub span: Span,
@@ -263,7 +264,7 @@ pub struct AbilityDecl {
 pub struct ImplBlock {
     pub ability: Option<String>,
     pub target: String,
-    pub methods: Vec<FunctionDecl>,
+    pub methods: Vec<OpDecl>,
     pub span: Span,
 }
 
@@ -311,7 +312,7 @@ pub struct TaskBodyDecl {
 pub struct ProtectedBlock {
     pub name: String,
     pub fields: Vec<ProtectedField>,
-    pub methods: Vec<FunctionDecl>,
+    pub methods: Vec<OpDecl>,
     pub is_pub: bool,
     pub span: Span,
 }
@@ -338,7 +339,7 @@ pub struct UnitDeclNode {
 #[derive(Debug, Clone)]
 pub struct ExternBlock {
     pub abi: String,
-    pub functions: Vec<FunctionDecl>,
+    pub functions: Vec<OpDecl>,
     pub span: Span,
 }
 
@@ -596,6 +597,14 @@ pub enum Expr {
     SelfExpr(SelfExprNode),
     Pipeline(PipelineExpr),
     Concat(ConcatExpr),
+    Cast(Box<CastExpr>),
+}
+
+#[derive(Debug, Clone)]
+pub struct CastExpr {
+    pub expr: Expr,
+    pub target_type: TypeExpr,
+    pub span: Span,
 }
 
 impl Expr {
@@ -624,6 +633,7 @@ impl Expr {
             Expr::SelfExpr(e) => e.span,
             Expr::Pipeline(e) => e.span,
             Expr::Concat(e) => e.span,
+            Expr::Cast(e) => e.span,
         }
     }
 }

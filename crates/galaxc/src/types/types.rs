@@ -85,6 +85,11 @@ impl Type {
         matches!(self, Type::Float32 | Type::Float64)
     }
 
+    /// Check if this type must be handled (unused values of this type are errors).
+    pub fn is_must_use(&self) -> bool {
+        matches!(self, Type::Option { .. } | Type::Result { .. })
+    }
+
     /// Check if this is the error recovery type.
     pub fn is_error(&self) -> bool {
         matches!(self, Type::Error)

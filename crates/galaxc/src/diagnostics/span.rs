@@ -2,9 +2,11 @@
 // Every token and AST node carries a Span so that diagnostics can point
 // back to the exact source position of an error.
 
+use serde::Serialize;
+
 /// Byte-offset span within a source file. Both endpoints are inclusive of start,
 /// exclusive of end, matching the convention used by most editor tooling.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 pub struct Span {
     /// Byte offset of the first character.
     pub start: usize,

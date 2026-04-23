@@ -61,7 +61,7 @@ impl TypeChecker {
 
     fn register_item(&mut self, item: &Item) {
         match item {
-            Item::Function(f) => self.register_function(f),
+            Item::Op(f) => self.register_op(f),
             Item::Struct(s) => self.register_struct(s),
             Item::Enum(e) => self.register_enum(e),
             Item::Ability(a) => self.register_ability(a),
@@ -73,14 +73,14 @@ impl TypeChecker {
             Item::UnitDecl(_) => {}
             Item::ExternBlock(e) => {
                 for f in &e.functions {
-                    self.register_function(f);
+                    self.register_op(f);
                 }
             }
             Item::StaticAssert(_) => {}
         }
     }
 
-    fn register_function(&mut self, func: &FunctionDecl) {
+    fn register_op(&mut self, func: &OpDecl) {
         let params: Vec<ParamInfo> = func
             .params
             .iter()
@@ -269,11 +269,11 @@ impl TypeChecker {
 
     fn check_item(&mut self, item: &Item) {
         match item {
-            Item::Function(f) => self.check_function(f),
+            Item::Op(f) => self.check_op(f),
             Item::ImplBlock(block) => {
                 for method in &block.methods {
-                    self.register_function(method);
-                    self.check_function(method);
+                    self.register_op(method);
+                    self.check_op(method);
                 }
             }
             Item::TaskBody(tb) => self.check_task_body(tb),
@@ -283,7 +283,7 @@ impl TypeChecker {
         }
     }
 
-    fn check_function(&mut self, func: &FunctionDecl) {
+    fn check_op(&mut self, func: &OpDecl) {
         let return_type = func
             .return_type
             .as_ref()
@@ -400,26 +400,28 @@ impl TypeChecker {
             }
 
             Stmt::Assign(s) => {
-                // Check that the target is mutable
-                if let Expr::Identifier(ref id) = s.target {
-                    if let Some(binding) = self.env.lookup_var(&id.name) {
-                        if !binding.mutable {
-                            self.errors.push(
-                                Diagnostic::error(format!(
-                                    "cannot assign to immutable variable '{}'",
-                                    id.name
-                                ))
-                                .with_span(s.span)
-                                .with_help("declare with 'var' instead of 'let' to make it mutable"),
-                            );
-                        }
-                    }
+                if !self.check_lvalue_mutability(&s.target) {
+                    self.errors.push(
+                        Diagnostic::error("cannot assign to immutable location")
+                            .with_span(s.target.span())
+                            .with_help("make the base variable mutable with 'var' or 'mut'"),
+                    );
                 }
                 let _value_ty = self.infer_expr_type(&s.value);
             }
 
             Stmt::Expr(s) => {
-                let _ty = self.infer_expr_type(&s.expr);
+                let ty = self.infer_expr_type(&s.expr);
+                if ty.is_must_use() {
+                    self.errors.push(
+                        Diagnostic::error(format!(
+                            "unused result of type {} that must be handled",
+                            ty.display_name()
+                        ))
+                        .with_span(s.expr.span())
+                        .with_help("handle the value with 'match', '?', or assign it to a variable"),
+                    );
+                }
             }
 
             Stmt::If(s) => {
@@ -894,6 +896,8 @@ impl TypeChecker {
                 }
                 Type::Text
             }
+
+            Expr::Cast(c) => self.resolve_type_expr(&c.target_type),
         }
     }
 
@@ -1069,5 +1073,27 @@ impl TypeChecker {
             return true;
         }
         false
+    }
+
+    fn check_lvalue_mutability(&mut self, expr: &Expr) -> bool {
+        match expr {
+            Expr::Identifier(id) => {
+                if let Some(binding) = self.env.lookup_var(&id.name) {
+                    binding.mutable
+                } else {
+                    true // Global or not found
+                }
+            }
+            Expr::FieldAccess(fa) => self.check_lvalue_mutability(&fa.object),
+            Expr::Index(idx) => self.check_lvalue_mutability(&idx.object),
+            Expr::SelfExpr(_) => {
+                if let Some(binding) = self.env.lookup_var("self") {
+                    binding.mutable
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
     }
 }

@@ -5,7 +5,7 @@ mod span;
 mod report;
 
 pub use span::{Span, SourceLocation};
-pub use report::{Diagnostic, DiagnosticKind, render_diagnostics};
+pub use report::{Diagnostic, DiagnosticKind, render_diagnostics, render_json};
 
 // thiserror import removed
 

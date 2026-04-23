@@ -19,6 +19,10 @@ use std::process::{Command, Stdio};
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+
+    /// Output diagnostics in JSON format
+    #[arg(long, global = true)]
+    json: bool,
 }
 
 #[derive(Subcommand)]
@@ -90,13 +94,13 @@ fn main() {
     let cli = Cli::parse();
 
     let exit_code = match cli.command {
-        Commands::Build { file, output, cc } => cmd_build(&file, output.as_deref(), &cc),
-        Commands::Check { file } => cmd_check(&file),
-        Commands::Run { file } => cmd_run(&file),
-        Commands::EmitC { file, output } => cmd_emit_c(&file, output.as_deref()),
-        Commands::EmitIr { file } => cmd_emit_ir(&file),
+        Commands::Build { file, output, cc } => cmd_build(&file, output.as_deref(), &cc, cli.json),
+        Commands::Check { file } => cmd_check(&file, cli.json),
+        Commands::Run { file } => cmd_run(&file, cli.json),
+        Commands::EmitC { file, output } => cmd_emit_c(&file, output.as_deref(), cli.json),
+        Commands::EmitIr { file } => cmd_emit_ir(&file, cli.json),
         Commands::Fmt { file } => cmd_fmt(&file),
-        Commands::Test { path } => cmd_test(path.as_deref()),
+        Commands::Test { path } => cmd_test(path.as_deref(), cli.json),
         Commands::Init { name } => cmd_init(&name),
         Commands::Version => cmd_version(),
     };
@@ -104,7 +108,7 @@ fn main() {
     std::process::exit(exit_code);
 }
 
-fn cmd_build(file: &Path, output: Option<&Path>, cc: &str) -> i32 {
+fn cmd_build(file: &Path, output: Option<&Path>, cc: &str, json: bool) -> i32 {
     let source = match read_source(file) {
         Some(s) => s,
         None => return 1,
@@ -113,11 +117,14 @@ fn cmd_build(file: &Path, output: Option<&Path>, cc: &str) -> i32 {
     let filename = file.display().to_string();
     print_phase("Compiling", &filename);
 
-    // Generate C code
     let c_code = match galaxc::compile(&source, &filename) {
         Ok(code) => code,
         Err(errors) => {
-            galaxc::diagnostics::render_diagnostics(&errors, &source);
+            if json {
+                galaxc::diagnostics::render_json(&errors, &source);
+            } else {
+                galaxc::diagnostics::render_diagnostics(&errors, &source);
+            }
             return 1;
         }
     };
@@ -182,7 +189,7 @@ fn cmd_build(file: &Path, output: Option<&Path>, cc: &str) -> i32 {
     }
 }
 
-fn cmd_check(file: &Path) -> i32 {
+fn cmd_check(file: &Path, json: bool) -> i32 {
     let source = match read_source(file) {
         Some(s) => s,
         None => return 1,
@@ -193,17 +200,25 @@ fn cmd_check(file: &Path) -> i32 {
 
     match galaxc::check_only(&source, &filename) {
         Ok(()) => {
-            print_success("No errors found");
+            if !json {
+                print_success("No errors found");
+            } else {
+                println!("[]");
+            }
             0
         }
         Err(errors) => {
-            galaxc::diagnostics::render_diagnostics(&errors, &source);
+            if json {
+                galaxc::diagnostics::render_json(&errors, &source);
+            } else {
+                galaxc::diagnostics::render_diagnostics(&errors, &source);
+            }
             1
         }
     }
 }
 
-fn cmd_run(file: &Path) -> i32 {
+fn cmd_run(file: &Path, json: bool) -> i32 {
     let temp_dir = std::env::temp_dir();
     let stem = file.file_stem().unwrap_or_default().to_string_lossy();
     let out_name = if cfg!(windows) {
@@ -213,7 +228,7 @@ fn cmd_run(file: &Path) -> i32 {
     };
     let out_path = temp_dir.join(&out_name);
 
-    let build_result = cmd_build(file, Some(&out_path), "cc");
+    let build_result = cmd_build(file, Some(&out_path), "cc", json);
     if build_result != 0 {
         return build_result;
     }
@@ -237,7 +252,7 @@ fn cmd_run(file: &Path) -> i32 {
     }
 }
 
-fn cmd_emit_c(file: &Path, output: Option<&Path>) -> i32 {
+fn cmd_emit_c(file: &Path, output: Option<&Path>, json: bool) -> i32 {
     let source = match read_source(file) {
         Some(s) => s,
         None => return 1,
@@ -259,13 +274,17 @@ fn cmd_emit_c(file: &Path, output: Option<&Path>) -> i32 {
             0
         }
         Err(errors) => {
-            galaxc::diagnostics::render_diagnostics(&errors, &source);
+            if json {
+                galaxc::diagnostics::render_json(&errors, &source);
+            } else {
+                galaxc::diagnostics::render_diagnostics(&errors, &source);
+            }
             1
         }
     }
 }
 
-fn cmd_emit_ir(file: &Path) -> i32 {
+fn cmd_emit_ir(file: &Path, json: bool) -> i32 {
     let source = match read_source(file) {
         Some(s) => s,
         None => return 1,
@@ -279,7 +298,11 @@ fn cmd_emit_ir(file: &Path) -> i32 {
             0
         }
         Err(errors) => {
-            galaxc::diagnostics::render_diagnostics(&errors, &source);
+            if json {
+                galaxc::diagnostics::render_json(&errors, &source);
+            } else {
+                galaxc::diagnostics::render_diagnostics(&errors, &source);
+            }
             1
         }
     }
@@ -339,7 +362,7 @@ fn cmd_fmt(file: &Path) -> i32 {
     0
 }
 
-fn cmd_test(path: Option<&Path>) -> i32 {
+fn cmd_test(path: Option<&Path>, json: bool) -> i32 {
     let target = path.unwrap_or_else(|| Path::new("."));
     print_phase("Testing", &target.display().to_string());
 
@@ -370,12 +393,18 @@ fn cmd_test(path: Option<&Path>) -> i32 {
         let filename = file.display().to_string();
         match galaxc::check_only(&source, &filename) {
             Ok(()) => {
-                println!("  {} {}", "PASS".green(), file.display());
+                if !json {
+                    println!("  {} {}", "PASS".green(), file.display());
+                }
                 passed += 1;
             }
             Err(errors) => {
-                println!("  {} {}", "FAIL".red(), file.display());
-                galaxc::diagnostics::render_diagnostics(&errors, &source);
+                if !json {
+                    println!("  {} {}", "FAIL".red(), file.display());
+                    galaxc::diagnostics::render_diagnostics(&errors, &source);
+                } else {
+                    galaxc::diagnostics::render_json(&errors, &source);
+                }
                 failed += 1;
             }
         }

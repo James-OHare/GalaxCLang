@@ -7,32 +7,37 @@ const PI: Float64 = 3.14159265358979323846
 const E: Float64 = 2.71828182845904523536
 const TAU: Float64 = 6.28318530717958647692
 
+@intrinsic("sqrt")
 @effect(pure)
 op sqrt(x: Float64) -> Float64 =>
-    -- intrinsic: maps to C sqrt()
     return 0.0
 end
 
+@intrinsic("sin")
 @effect(pure)
 op sin(x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("cos")
 @effect(pure)
 op cos(x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("tan")
 @effect(pure)
 op tan(x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("atan2")
 @effect(pure)
 op atan2(y: Float64, x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("fabs")
 @effect(pure)
 op abs(x: Float64) -> Float64 =>
     if x < 0.0 =>
@@ -68,36 +73,43 @@ op clamp(x: Float64, lo: Float64, hi: Float64) -> Float64 =>
     return x
 end
 
+@intrinsic("pow")
 @effect(pure)
 op pow(base: Float64, exponent: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("log")
 @effect(pure)
 op log(x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("log2")
 @effect(pure)
 op log2(x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("log10")
 @effect(pure)
 op log10(x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("floor")
 @effect(pure)
 op floor(x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("ceil")
 @effect(pure)
 op ceil(x: Float64) -> Float64 =>
     return 0.0
 end
 
+@intrinsic("round")
 @effect(pure)
 op round(x: Float64) -> Float64 =>
     return 0.0

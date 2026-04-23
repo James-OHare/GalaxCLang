@@ -225,11 +225,11 @@ impl IrLowerer {
             match item {
                 Item::Struct(s) => structs.push(self.lower_struct(s)),
                 Item::Enum(e) => enums.push(self.lower_enum(e)),
-                Item::Function(f) => functions.push(self.lower_function(f)),
+                Item::Op(f) => functions.push(self.lower_op(f)),
                 Item::Constant(c) => constants.push(self.lower_const(c)),
                 Item::ImplBlock(block) => {
                     for method in &block.methods {
-                        let mut ir_func = self.lower_function(method);
+                        let mut ir_func = self.lower_op(method);
                         ir_func.name = format!("{}_{}", block.target, ir_func.name);
                         functions.push(ir_func);
                     }
@@ -277,7 +277,7 @@ impl IrLowerer {
         }
     }
 
-    fn lower_function(&mut self, decl: &FunctionDecl) -> IrFunction {
+    fn lower_op(&mut self, decl: &OpDecl) -> IrFunction {
         let params: Vec<IrParam> = decl.params.iter().map(|p| IrParam {
             name: p.name.clone(),
             c_type: self.type_expr_to_c(&p.type_expr),
@@ -288,7 +288,14 @@ impl IrLowerer {
             .unwrap_or_else(|| "void".to_string());
 
         let body = if let Some(ref block) = decl.body {
-            self.lower_block(block)
+            if let Some(intrinsic_name) = self.get_intrinsic_name(decl) {
+                let params_list: Vec<String> = decl.params.iter().map(|p| p.name.clone()).collect();
+                vec![IrStmt::Return {
+                    value: Some(format!("{}({})", intrinsic_name, params_list.join(", ")))
+                }]
+            } else {
+                self.lower_block(block)
+            }
         } else {
             Vec::new()
         };
@@ -655,6 +662,12 @@ impl IrLowerer {
                 format!("gxc_range({start}, {end})")
             }
 
+            Expr::Cast(c) => {
+                let inner = self.expr_to_c(&c.expr);
+                let target = self.type_expr_to_c(&c.target_type);
+                format!("(({target}){inner})")
+            }
+
             _ => "/* unhandled expr */".to_string(),
         }
     }
@@ -677,7 +690,25 @@ impl IrLowerer {
                 _ => self.infer_c_type(&bin.left),
             },
             Expr::Concat(_) => "GxcText".to_string(),
+            Expr::Cast(c) => self.type_expr_to_c(&c.target_type),
             _ => "int64_t".to_string(),
         }
+    }
+
+    fn get_intrinsic_name(&self, decl: &OpDecl) -> Option<String> {
+        for ann in &decl.annotations {
+            if ann.name == "intrinsic" {
+                if let Some(arg) = ann.args.first() {
+                    if let Expr::Literal(lit) = &arg.value {
+                        if let LiteralValue::String(s) = &lit.value {
+                            return Some(s.clone());
+                        }
+                    }
+                }
+                // Default to op name if no arg
+                return Some(decl.name.clone());
+            }
+        }
+        None
     }
 }

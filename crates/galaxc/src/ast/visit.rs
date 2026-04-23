@@ -23,7 +23,7 @@ pub trait AstVisitor {
 
     fn visit_item(&mut self, item: &Item) {
         match item {
-            Item::Function(f) => self.visit_function(f),
+            Item::Op(f) => self.visit_op(f),
             Item::Struct(s) => self.visit_struct(s),
             Item::Enum(e) => self.visit_enum(e),
             Item::Ability(a) => self.visit_ability(a),
@@ -38,7 +38,7 @@ pub trait AstVisitor {
         }
     }
 
-    fn visit_function(&mut self, func: &FunctionDecl) {
+    fn visit_op(&mut self, func: &OpDecl) {
         if let Some(ref body) = func.body {
             self.visit_block(body);
         }
@@ -50,7 +50,7 @@ pub trait AstVisitor {
 
     fn visit_impl(&mut self, block: &ImplBlock) {
         for method in &block.methods {
-            self.visit_function(method);
+            self.visit_op(method);
         }
     }
 
@@ -217,6 +217,9 @@ pub trait AstVisitor {
                 self.visit_expr(&e.left);
                 self.visit_expr(&e.right);
             }
+            Expr::Cast(e) => self.visit_expr(&e.expr),
         }
     }
+
+    fn visit_cast(&mut self, _expr: &CastExpr) {}
 }

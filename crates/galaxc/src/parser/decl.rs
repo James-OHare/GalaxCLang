@@ -20,10 +20,11 @@ impl Parser {
 
         let item = match self.current_kind() {
             TokenKind::Op => {
-                let mut func = self.parse_function()?;
-                func.annotations = annotations;
+                let func = self.parse_op()?;
+                let func = self.apply_annotations_to_op(func, annotations);
+                let mut func = func;
                 func.is_pub = is_pub;
-                Item::Function(func)
+                Item::Op(func)
             }
             TokenKind::Struct => {
                 let mut s = self.parse_struct_decl()?;
@@ -141,9 +142,28 @@ impl Parser {
 
     // -- Functions --
 
-    pub(super) fn parse_function(
+    fn apply_annotations_to_op(&self, mut func: OpDecl, annotations: Vec<Annotation>) -> OpDecl {
+        let mut effects = Vec::new();
+        let mut filtered_annotations = Vec::new();
+        for ann in annotations {
+            if ann.name == "effect" {
+                for arg in ann.args {
+                    if let Expr::Identifier(id) = arg.value {
+                        effects.push(id.name);
+                    }
+                }
+            } else {
+                filtered_annotations.push(ann);
+            }
+        }
+        func.annotations = filtered_annotations;
+        func.effects = effects;
+        func
+    }
+
+    pub(super) fn parse_op(
         &mut self,
-    ) -> Result<FunctionDecl, crate::diagnostics::Diagnostic> {
+    ) -> Result<OpDecl, crate::diagnostics::Diagnostic> {
         let start = self.current_span();
         self.expect(TokenKind::Op);
         let name = self.expect_identifier("function name");
@@ -215,9 +235,13 @@ impl Parser {
 
         let end = self.previous_span();
 
-        Ok(FunctionDecl {
+        let effects = Vec::new();
+        // OpDecl has an annotations field which is filled by the caller.
+        
+        Ok(OpDecl {
             name,
             annotations: Vec::new(), // filled in by caller
+            effects,
             generics,
             params,
             return_type,
@@ -496,8 +520,8 @@ impl Parser {
                 let c = self.parse_const_decl()?;
                 constants.push(c);
             } else if self.check(TokenKind::Op) {
-                let mut f = self.parse_function()?;
-                f.annotations = annotations;
+                let f = self.parse_op()?;
+                let f = self.apply_annotations_to_op(f, annotations);
                 methods.push(f);
             } else {
                 return Err(self.error("expected 'op' or 'const' in ability declaration"));
@@ -544,8 +568,8 @@ impl Parser {
                 break;
             }
             let annotations = self.parse_annotations();
-            let mut f = self.parse_function()?;
-            f.annotations = annotations;
+            let f = self.parse_op()?;
+            let f = self.apply_annotations_to_op(f, annotations);
             methods.push(f);
             self.skip_newlines();
         }
@@ -696,8 +720,8 @@ impl Parser {
                 });
             } else {
                 let annotations = self.parse_annotations();
-                let mut f = self.parse_function()?;
-                f.annotations = annotations;
+                let f = self.parse_op()?;
+                let f = self.apply_annotations_to_op(f, annotations);
                 methods.push(f);
             }
             self.skip_newlines();
@@ -767,7 +791,7 @@ impl Parser {
             if self.check(TokenKind::End) {
                 break;
             }
-            let f = self.parse_function()?;
+            let f = self.parse_op()?;
             functions.push(f);
             self.skip_newlines();
         }

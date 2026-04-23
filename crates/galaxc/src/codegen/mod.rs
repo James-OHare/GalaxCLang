@@ -106,6 +106,8 @@ impl CGen {
         self.line("#include <stdbool.h>");
         self.line("#include <string.h>");
         self.line("#include <math.h>");
+        self.line("#include <time.h>");
+        self.line("#include <unistd.h>");
         self.blank();
 
         self.line("/* GalaxC Runtime Support */");
@@ -241,6 +243,32 @@ impl CGen {
 
         // GXC_NONE sentinel
         self.line("#define GXC_NONE 0");
+        self.blank();
+
+        // GxcInstant and Duration support
+        self.line("typedef struct { int64_t nanos; } GxcDuration;");
+        self.line("typedef struct { int64_t epoch_nanos; } GxcInstant;");
+        self.blank();
+
+        self.line("static GxcInstant gxc_mission_clock(void) {");
+        self.indent += 1;
+        self.line("struct timespec ts;");
+        self.line("clock_gettime(CLOCK_MONOTONIC, &ts);");
+        self.line("GxcInstant inst;");
+        self.line("inst.epoch_nanos = (int64_t)ts.tv_sec * 1000000000LL + (int64_t)ts.tv_nsec;");
+        self.line("return inst;");
+        self.indent -= 1;
+        self.line("}");
+        self.blank();
+
+        self.line("static void gxc_sleep(GxcDuration d) {");
+        self.indent += 1;
+        self.line("struct timespec ts;");
+        self.line("ts.tv_sec = (time_t)(d.nanos / 1000000000LL);");
+        self.line("ts.tv_nsec = (long)(d.nanos % 1000000000LL);");
+        self.line("nanosleep(&ts, NULL);");
+        self.indent -= 1;
+        self.line("}");
         self.blank();
 
         // Propagation macro

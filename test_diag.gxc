@@ -1,0 +1,9 @@
+orbit test
+
+op launch() =>
+    let x = 10
+    -- x = 20 -- error: immutable
+    
+    let res: Result<Int, Text> = Ok(10)
+    res -- error: unused result
+end

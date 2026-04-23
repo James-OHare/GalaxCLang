@@ -28,6 +28,7 @@ enum Precedence {
     ErrorConvert, // !!
     Unary,        // - not ~
     Postfix,      // ? . () []
+    Cast,         // as
 }
 
 impl Parser {
@@ -162,6 +163,7 @@ impl Parser {
             TokenKind::Dot => Precedence::Postfix,
             TokenKind::LParen => Precedence::Postfix,
             TokenKind::LBracket => Precedence::Postfix,
+            TokenKind::As => Precedence::Cast,
             _ => Precedence::None,
         }
     }
@@ -236,6 +238,19 @@ impl Parser {
                     index: Box::new(index),
                     span: start.merge(end),
                 }))
+            }
+
+            // Cast: expr as Type
+            TokenKind::As => {
+                let start = left.span();
+                self.advance();
+                let target_type = self.parse_type()?;
+                let end = self.previous_span();
+                Ok(Expr::Cast(Box::new(CastExpr {
+                    expr: left,
+                    target_type,
+                    span: start.merge(end),
+                })))
             }
 
             // Error conversion: !!
@@ -500,32 +515,17 @@ impl Parser {
         let start = self.current_span();
         let name = self.expect_identifier("expression");
 
-        // Check for path: Foo.Bar or Foo::bar
-        if self.check(TokenKind::Dot) && self.peek_ahead(1) == TokenKind::Identifier {
-            // Could be field access on a value or an enum variant path.
-            // We treat it as an identifier and let the postfix parsing handle the dot.
-            // But for Type.Variant patterns we need qualified names.
-            // Heuristic: if the name starts uppercase and next segment starts uppercase,
-            // treat as path.
-            let next_lexeme = self.tokens.get(self.pos + 1).map(|t| t.lexeme.as_str()).unwrap_or("");
-            if name.starts_with(|c: char| c.is_uppercase())
-                && next_lexeme.starts_with(|c: char| c.is_uppercase())
-            {
-                let mut segments = vec![name];
-                while self.match_token(TokenKind::Dot) {
-                    if self.check(TokenKind::Identifier) {
-                        segments.push(self.expect_identifier("path segment"));
-                    } else {
-                        self.pos -= 1; // put dot back
-                        break;
-                    }
-                }
-                let end = self.previous_span();
-                return Ok(Expr::Path(PathExpr {
-                    segments,
-                    span: start.merge(end),
-                }));
+        // Check for path: Foo::Bar or docking context
+        if self.check(TokenKind::ColonColon) {
+            let mut segments = vec![name];
+            while self.match_token(TokenKind::ColonColon) {
+                segments.push(self.expect_identifier("path segment"));
             }
+            let end = self.previous_span();
+            return Ok(Expr::Path(PathExpr {
+                segments,
+                span: start.merge(end),
+            }));
         }
 
         // Check for struct literal: Name { field: value, ... }

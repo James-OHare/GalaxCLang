@@ -4,8 +4,11 @@
 use super::span::{Span, SourceLocation};
 use colored::Colorize;
 
+use serde::Serialize;
+
 /// Severity level of a diagnostic message.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum DiagnosticKind {
     Error,
     Warning,
@@ -33,6 +36,7 @@ pub struct Diagnostic {
     pub filename: Option<String>,
     pub notes: Vec<String>,
     pub help: Option<String>,
+    pub error_code: Option<String>,
 }
 
 impl Diagnostic {
@@ -44,6 +48,7 @@ impl Diagnostic {
             filename: None,
             notes: Vec::new(),
             help: None,
+            error_code: None,
         }
     }
 
@@ -55,6 +60,7 @@ impl Diagnostic {
             filename: None,
             notes: Vec::new(),
             help: None,
+            error_code: None,
         }
     }
 
@@ -75,6 +81,11 @@ impl Diagnostic {
 
     pub fn with_help(mut self, help: impl Into<String>) -> Self {
         self.help = Some(help.into());
+        self
+    }
+
+    pub fn with_code(mut self, code: impl Into<String>) -> Self {
+        self.error_code = Some(code.into());
         self
     }
 
@@ -121,6 +132,36 @@ pub fn render_diagnostics(diagnostics: &[Diagnostic], source: &str) {
         }
         eprintln!("{}", parts.join(", "));
     }
+}
+
+/// Render diagnostics as a JSON array to stdout.
+pub fn render_json(diagnostics: &[Diagnostic], source: &str) {
+    let mut outputs = Vec::new();
+
+    for diag in diagnostics {
+        let span_info = diag.span.map(|span| {
+            let filename = diag.filename.as_deref().unwrap_or("<input>");
+            let loc = SourceLocation::from_offset(source, span.start, filename);
+            let end_loc = SourceLocation::from_offset(source, span.end, filename);
+            serde_json::json!({
+                "file": filename,
+                "start_line": loc.line,
+                "start_col": loc.column,
+                "end_line": end_loc.line,
+                "end_col": end_loc.column
+            })
+        });
+
+        let json_diag = serde_json::json!({
+            "span": span_info,
+            "severity": diag.kind,
+            "error_code": diag.error_code,
+            "message": diag.message
+        });
+        outputs.push(json_diag);
+    }
+
+    println!("{}", serde_json::to_string(&outputs).unwrap_or_else(|_| "[]".to_string()));
 }
 
 /// Render a single diagnostic to stderr.

@@ -20,7 +20,7 @@ end
 
 impl Duration =>
     op from_seconds(s: Float64) -> Duration =>
-        return Duration { nanos: 0 }
+        return Duration { nanos: (s * 1000000000.0) as Int64 }
     end
 
     op from_millis(ms: Int64) -> Duration =>
@@ -32,7 +32,7 @@ impl Duration =>
     end
 
     op to_seconds(self) -> Float64 =>
-        return 0.0
+        return (self.nanos as Float64) / 1000000000.0
     end
 
     op to_millis(self) -> Int64 =>
@@ -41,6 +41,7 @@ impl Duration =>
 end
 
 --- Get the current mission clock time.
+@intrinsic("gxc_mission_clock")
 @effect(timing)
 op mission_clock() -> Instant =>
     return Instant { epoch_nanos: 0 }
@@ -68,8 +69,8 @@ op past_deadline(dl: Deadline) -> Bool =>
 end
 
 --- Sleep for the specified duration.
+@intrinsic("gxc_sleep")
 @effect(timing)
 op sleep(d: Duration) =>
-    -- intrinsic: maps to platform sleep
     return
 end

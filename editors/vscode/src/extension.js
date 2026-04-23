@@ -79,39 +79,68 @@ async function initProject() {
 }
 
 function runGalaxCCheck(document, collection) {
-    // Attempt to run from path
-    exec(`galaxc check "${document.fileName}"`, (err, stdout, stderr) => {
+    exec(`galaxc check --json "${document.fileName}"`, (err, stdout, stderr) => {
         if (err && err.code === 'ENOENT') {
             vscode.window.showErrorMessage("'galaxc' compiler not found in PATH. Please install it with 'cargo install --path crates/galaxc-cli'.");
             return;
         }
 
-        collection.delete(document.uri);
-        const output = (stdout + stderr).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-        const diagnostics = [];
-        let currentMsg = null;
-        let currentSev = vscode.DiagnosticSeverity.Error;
+        collection.clear();
+        
+        try {
+            const data = JSON.parse(stdout);
+            const diagnosticsByFile = {};
 
-        output.split(/\r?\n/).forEach(line => {
-            const raw = line.trim();
-            // Match "error: message" or "warning: message"
-            const m = raw.match(/^(error|warning): (.+)$/i);
-            if (m) {
-                currentMsg = m[2];
-                currentSev = m[1].toLowerCase() === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error;
-            } else {
-                // Match "--> file:line:col" (handle DRIVE:\path and relative paths)
-                const l = raw.match(/^-->\s+(.+):(\d+):(\d+)$/);
-                if (l && currentMsg) {
-                    const lineIdx = parseInt(l[2]) - 1;
-                    const colIdx = parseInt(l[3]) - 1;
-                    const range = new vscode.Range(lineIdx, colIdx, lineIdx, colIdx + 5);
-                    diagnostics.push(new vscode.Diagnostic(range, currentMsg, currentSev));
-                    currentMsg = null;
+            data.forEach(d => {
+                if (!d.span) return;
+
+                const range = new vscode.Range(
+                    d.span.start_line - 1,
+                    d.span.start_col - 1,
+                    d.span.end_line - 1,
+                    d.span.end_col
+                );
+                const severity = d.severity?.toLowerCase() === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error;
+                const diag = new vscode.Diagnostic(range, d.message, severity);
+                diag.source = 'galaxc';
+
+                const fileUri = vscode.Uri.file(d.span.file);
+                const uriStr = fileUri.toString();
+                if (!diagnosticsByFile[uriStr]) {
+                    diagnosticsByFile[uriStr] = [];
                 }
+                diagnosticsByFile[uriStr].push(diag);
+            });
+
+            for (const [uriStr, diags] of Object.entries(diagnosticsByFile)) {
+                collection.set(vscode.Uri.parse(uriStr), diags);
             }
-        });
-        collection.set(document.uri, diagnostics);
+        } catch (e) {
+            // Fallback to legacy parsing if JSON fails (e.g. compiler error)
+            const output = (stdout + stderr).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+            const diagnostics = [];
+            let currentMsg = null;
+            let currentSev = vscode.DiagnosticSeverity.Error;
+
+            output.split(/\r?\n/).forEach(line => {
+                const raw = line.trim();
+                const m = raw.match(/^(error|warning): (.+)$/i);
+                if (m) {
+                    currentMsg = m[2];
+                    currentSev = m[1].toLowerCase() === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error;
+                } else {
+                    const l = raw.match(/^-->\s+(.+):(\d+):(\d+)$/);
+                    if (l && currentMsg) {
+                        const lineIdx = parseInt(l[2]) - 1;
+                        const colIdx = parseInt(l[3]) - 1;
+                        const range = new vscode.Range(lineIdx, colIdx, lineIdx, colIdx + 5);
+                        diagnostics.push(new vscode.Diagnostic(range, currentMsg, currentSev));
+                        currentMsg = null;
+                    }
+                }
+            });
+            collection.set(document.uri, diagnostics);
+        }
     });
 }
 
