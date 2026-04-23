@@ -22,14 +22,14 @@
         "extensions": [
           ".gxc"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "language-configuration.json"
       }
     ],
     "grammars": [
       {
         "language": "galaxc",
         "scopeName": "source.gxc",
-        "path": "./syntaxes/galaxc.tmLanguage.json"
+        "path": "syntaxes/galaxc.tmLanguage.json"
       }
     ]
   }
