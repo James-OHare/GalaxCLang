@@ -271,6 +271,21 @@ impl CGen {
         self.line("}");
         self.blank();
 
+        self.line("static GxcText gxc_read_line() {");
+        self.indent += 1;
+        self.line("char buffer[1024];");
+        self.line("if (fgets(buffer, sizeof(buffer), stdin)) {");
+        self.indent += 1;
+        self.line("size_t len = strlen(buffer);");
+        self.line("if (len > 0 && buffer[len-1] == '\\n') buffer[len-1] = '\\0';");
+        self.line("return gxc_text_from_cstr(buffer);");
+        self.indent -= 1;
+        self.line("}");
+        self.line("return gxc_text_from_cstr(\"\");");
+        self.indent -= 1;
+        self.line("}");
+        self.blank();
+
         // Propagation macro
         self.line("#define GXC_PROPAGATE(expr) (expr) /* simplified propagation */");
         self.blank();

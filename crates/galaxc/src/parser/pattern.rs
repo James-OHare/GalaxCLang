@@ -99,10 +99,10 @@ impl Parser {
                 let start = self.current_span();
                 let name = self.expect_identifier("pattern");
 
-                // Check for qualified path: Type.Variant(fields)
-                if self.check(TokenKind::Dot) {
+                // Check for qualified path: Type::Variant(fields)
+                if self.check(TokenKind::ColonColon) {
                     let mut path = vec![name];
-                    while self.match_token(TokenKind::Dot) {
+                    while self.match_token(TokenKind::ColonColon) {
                         path.push(self.expect_identifier("variant name"));
                     }
 

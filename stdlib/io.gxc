@@ -1,0 +1,18 @@
+--! GalaxC I/O Module
+--! Provides basic console input and output.
+
+orbit core.io
+
+--- Print a displayable value followed by a newline.
+@intrinsic("puts")
+@effect(io)
+op print(text: Text) =>
+    return
+end
+
+--- Read a line of text from standard input.
+@intrinsic("gxc_read_line")
+@effect(io)
+op read_line() -> Text =>
+    return ""
+end

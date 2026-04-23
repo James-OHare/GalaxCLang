@@ -4,8 +4,8 @@
 
 use super::env::TypeEnv;
 use crate::ast::*;
+use crate::diagnostics::{Diagnostic, Span};
 use crate::types::*;
-use crate::diagnostics::Diagnostic;
 
 /// Run the type checker on a parsed program. Returns the validated AST
 /// (unchanged for now -- full typed-AST annotation is a future pass)
@@ -27,21 +27,33 @@ pub fn check(program: &Program, filename: &str) -> Result<Program, Vec<Diagnosti
     }
 }
 
-struct TypeChecker {
+pub struct TypeChecker {
     env: TypeEnv,
     errors: Vec<Diagnostic>,
     current_return_type: Option<Type>,
+    current_effects: Vec<String>,
     in_loop: bool,
 }
 
 impl TypeChecker {
-    fn new() -> Self {
+    pub fn new() -> Self {
         TypeChecker {
             env: TypeEnv::new(),
             errors: Vec::new(),
             current_return_type: None,
+            current_effects: Vec::new(),
             in_loop: false,
         }
+    }
+
+    pub fn take_errors(self) -> Vec<Diagnostic> {
+        self.errors
+    }
+
+    pub fn check(program: &Program) -> Self {
+        let mut checker = TypeChecker::new();
+        checker.check_program(program);
+        checker
     }
 
     fn check_program(&mut self, program: &Program) {
@@ -97,20 +109,7 @@ impl TypeChecker {
             .map(|t| self.resolve_type_expr(t))
             .unwrap_or(Type::Unit);
 
-        let effects: Vec<String> = func
-            .annotations
-            .iter()
-            .filter(|a| a.name == "effect")
-            .flat_map(|a| {
-                a.args.iter().filter_map(|arg| {
-                    if let Expr::Identifier(id) = &arg.value {
-                        Some(id.name.clone())
-                    } else {
-                        None
-                    }
-                })
-            })
-            .collect();
+        let effects = func.effects.clone();
 
         let generic_params: Vec<String> = func.generics.iter().map(|g| g.name.clone()).collect();
 
@@ -291,6 +290,7 @@ impl TypeChecker {
             .unwrap_or(Type::Unit);
 
         self.current_return_type = Some(return_type);
+        self.current_effects = func.effects.clone();
         self.env.push_scope();
 
         // Bind parameters
@@ -306,6 +306,7 @@ impl TypeChecker {
 
         self.env.pop_scope();
         self.current_return_type = None;
+        self.current_effects.clear();
     }
 
     fn check_task_body(&mut self, tb: &TaskBodyDecl) {
@@ -367,7 +368,8 @@ impl TypeChecker {
                                 s.name,
                                 declared_type.display_name()
                             ))
-                            .with_span(s.span),
+                            .with_span(s.span)
+                            .with_code("E0001"),
                         );
                     }
                     declared_type
@@ -389,7 +391,8 @@ impl TypeChecker {
                                 s.name,
                                 declared_type.display_name()
                             ))
-                            .with_span(s.span),
+                            .with_span(s.span)
+                            .with_code("E0001"),
                         );
                     }
                     declared_type
@@ -404,6 +407,7 @@ impl TypeChecker {
                     self.errors.push(
                         Diagnostic::error("cannot assign to immutable location")
                             .with_span(s.target.span())
+                            .with_code("E0004")
                             .with_help("make the base variable mutable with 'var' or 'mut'"),
                     );
                 }
@@ -419,6 +423,7 @@ impl TypeChecker {
                             ty.display_name()
                         ))
                         .with_span(s.expr.span())
+                        .with_code("E0007")
                         .with_help("handle the value with 'match', '?', or assign it to a variable"),
                     );
                 }
@@ -432,7 +437,8 @@ impl TypeChecker {
                             "if condition must be Bool, found {}",
                             cond_ty.display_name()
                         ))
-                        .with_span(s.condition.span()),
+                        .with_span(s.condition.span())
+                        .with_code("E0006"),
                     );
                 }
                 self.env.push_scope();
@@ -444,7 +450,8 @@ impl TypeChecker {
                     if cond_ty != Type::Bool && !cond_ty.is_error() {
                         self.errors.push(
                             Diagnostic::error("else-if condition must be Bool")
-                                .with_span(cond.span()),
+                                .with_span(cond.span())
+                                .with_code("E0006"),
                         );
                     }
                     self.env.push_scope();
@@ -460,16 +467,7 @@ impl TypeChecker {
             }
 
             Stmt::Match(s) => {
-                let _subject_ty = self.infer_expr_type(&s.subject);
-                for arm in &s.arms {
-                    self.env.push_scope();
-                    self.bind_pattern(&arm.pattern);
-                    match &arm.body {
-                        MatchArmBody::Block(block) => self.check_block(block),
-                        MatchArmBody::Expr(expr) => { self.infer_expr_type(expr); }
-                    }
-                    self.env.pop_scope();
-                }
+                self.check_match_logic(&s.subject, &s.arms, s.span);
             }
 
             Stmt::For(s) => {
@@ -492,7 +490,8 @@ impl TypeChecker {
                 if cond_ty != Type::Bool && !cond_ty.is_error() {
                     self.errors.push(
                         Diagnostic::error("while condition must be Bool")
-                            .with_span(s.condition.span()),
+                            .with_span(s.condition.span())
+                            .with_code("E0006"),
                     );
                 }
                 self.env.push_scope();
@@ -519,7 +518,9 @@ impl TypeChecker {
             Stmt::Break(s) => {
                 if !self.in_loop {
                     self.errors.push(
-                        Diagnostic::error("'break' used outside of a loop").with_span(s.span),
+                        Diagnostic::error("'break' used outside of a loop")
+                            .with_span(s.span)
+                            .with_code("E0010"),
                     );
                 }
             }
@@ -527,7 +528,9 @@ impl TypeChecker {
             Stmt::Continue(s) => {
                 if !self.in_loop {
                     self.errors.push(
-                        Diagnostic::error("'continue' used outside of a loop").with_span(s.span),
+                        Diagnostic::error("'continue' used outside of a loop")
+                            .with_span(s.span)
+                            .with_code("E0010"),
                     );
                 }
             }
@@ -567,7 +570,8 @@ impl TypeChecker {
                 if guard_ty != Type::Bool && !guard_ty.is_error() {
                     self.errors.push(
                         Diagnostic::error("select guard must be Bool")
-                            .with_span(guard.span()),
+                            .with_span(guard.span())
+                            .with_code("E0006"),
                     );
                 }
                 self.check_select_arm(accept);
@@ -600,7 +604,8 @@ impl TypeChecker {
                 } else {
                     self.errors.push(
                         Diagnostic::error(format!("undefined variable '{}'", id.name))
-                            .with_span(id.span),
+                            .with_span(id.span)
+                            .with_code("E0002"),
                     );
                     Type::Error
                 }
@@ -622,7 +627,8 @@ impl TypeChecker {
                                     "arithmetic operator '{}' requires numeric operands, found {} and {}",
                                     bin.op, left_ty.display_name(), right_ty.display_name()
                                 ))
-                                .with_span(bin.span),
+                                .with_span(bin.span)
+                                .with_code("E0009"),
                             );
                             Type::Error
                         }
@@ -636,7 +642,8 @@ impl TypeChecker {
                                     "logical '{}' requires Bool operands, found {}",
                                     bin.op, left_ty.display_name()
                                 ))
-                                .with_span(bin.left.span()),
+                                .with_span(bin.left.span())
+                                .with_code("E0006"),
                             );
                         }
                         Type::Bool
@@ -703,9 +710,13 @@ impl TypeChecker {
                                             "function '{}' expects {expected} argument(s), got {got}",
                                             id.name
                                         ))
-                                        .with_span(call.span),
+                                        .with_span(call.span)
+                                        .with_code("E0009"),
                                     );
                                 }
+                                // Check effect safety
+                                self.check_effects(&func_info.effects, call.span);
+                                
                                 // Check argument types
                                 for (arg, _param) in call.args.iter().zip(&func_info.params) {
                                     let _arg_ty = self.infer_expr_type(&arg.value);
@@ -732,11 +743,16 @@ impl TypeChecker {
             Expr::MethodCall(mc) => {
                 let recv_ty = self.infer_expr_type(&mc.receiver);
                 if let Type::Struct { id, .. } = &recv_ty {
-                    if let Some(info) = self.env.get_struct(*id) {
-                        if let Some(method) = info.methods.iter().find(|m| m.name == mc.method) {
-                            // Check argument count and types (simplified)
-                            return method.return_type.clone();
-                        }
+                    let method_info = self.env.get_struct(*id).and_then(|info| {
+                        info.methods.iter().find(|m| m.name == mc.method).cloned()
+                    });
+
+                    if let Some(method) = method_info {
+                        // Check effect safety
+                        self.check_effects(&method.effects, mc.span);
+                        
+                        // Check argument count and types (simplified)
+                        return method.return_type.clone();
                     }
                 }
                 
@@ -781,7 +797,8 @@ impl TypeChecker {
                 } else {
                     self.errors.push(
                         Diagnostic::error(format!("unknown struct type '{}'", sl.name))
-                            .with_span(sl.span),
+                            .with_span(sl.span)
+                            .with_code("E0008"),
                     );
                     Type::Error
                 }
@@ -869,8 +886,7 @@ impl TypeChecker {
             }
 
             Expr::Match(match_expr) => {
-                let _subj = self.infer_expr_type(&match_expr.subject);
-                Type::Inferred { id: self.env.fresh_infer_id() }
+                self.check_match_logic(&match_expr.subject, &match_expr.arms, match_expr.span)
             }
 
             Expr::Block(block) => {
@@ -901,26 +917,7 @@ impl TypeChecker {
         }
     }
 
-    /// Bind variables introduced by a pattern.
-    fn bind_pattern(&mut self, pattern: &Pattern) {
-        match pattern {
-            Pattern::Binding { name, .. } => {
-                let id = self.env.fresh_infer_id();
-                self.env.bind_var(name, Type::Inferred { id }, false);
-            }
-            Pattern::Variant { fields, .. } => {
-                for field in fields {
-                    self.bind_pattern(&field.pattern);
-                }
-            }
-            Pattern::Tuple { elements, .. } => {
-                for elem in elements {
-                    self.bind_pattern(elem);
-                }
-            }
-            Pattern::Wildcard { .. } | Pattern::Literal { .. } => {}
-        }
-    }
+
 
     // -- Type resolution --
 
@@ -1095,5 +1092,107 @@ impl TypeChecker {
             }
             _ => false,
         }
+    }
+
+    fn check_effects(&mut self, required_effects: &[String], span: Span) {
+        for effect in required_effects {
+            if !self.current_effects.contains(effect) {
+                self.errors.push(
+                    Diagnostic::error(format!("operation requires effect '{effect}' which is not allowed here"))
+                        .with_span(span)
+                        .with_code("E0005")
+                        .with_help(format!("add @effect({effect}) to the current operation to allow this call")),
+                );
+            }
+        }
+    }
+
+    fn check_pattern(&mut self, pattern: &Pattern, subject_ty: &Type, covered: &mut std::collections::HashSet<String>, has_catch_all: &mut bool) {
+        match pattern {
+            Pattern::Binding { name, .. } => {
+                if name == "_" {
+                    *has_catch_all = true;
+                } else {
+                    self.env.bind_var(name, subject_ty.clone(), false);
+                    *has_catch_all = true;
+                }
+            }
+            Pattern::Wildcard { .. } => {
+                *has_catch_all = true;
+            }
+            Pattern::Variant { path, .. } => {
+                if let Some(variant_name) = path.last() {
+                    covered.insert(variant_name.clone());
+                }
+                // TODO: bind variant fields
+            }
+            Pattern::Literal { .. } => {
+                // Literals don't cover a full type unless catch-all exists
+            }
+            Pattern::Tuple { .. } => {
+                // TODO: deep tuple exhaustiveness
+                *has_catch_all = true;
+            }
+        }
+    }
+
+    fn infer_match_arm_body_type(&mut self, body: &MatchArmBody) -> Type {
+        match body {
+            MatchArmBody::Block(block) => {
+                self.check_block(block);
+                Type::Unit // TODO: block return type
+            }
+            MatchArmBody::Expr(expr) => self.infer_expr_type(expr),
+        }
+    }
+
+    fn check_match_logic(&mut self, subject: &Expr, arms: &[MatchArm], span: Span) -> Type {
+        let subject_ty = self.infer_expr_type(subject);
+        
+        let mut covered_variants = std::collections::HashSet::new();
+        let mut has_catch_all = false;
+        let mut common_ty = Type::Unit;
+        let mut first = true;
+
+        for arm in arms {
+            self.env.push_scope();
+            self.check_pattern(&arm.pattern, &subject_ty, &mut covered_variants, &mut has_catch_all);
+            let arm_ty = self.infer_match_arm_body_type(&arm.body);
+            if first {
+                common_ty = arm_ty;
+                first = false;
+            } else if !self.types_compatible(&common_ty, &arm_ty) {
+                self.errors.push(
+                    Diagnostic::error("match arms have incompatible types")
+                        .with_span(arm.span)
+                        .with_code("E0003")
+                );
+            }
+            self.env.pop_scope();
+        }
+
+        if !has_catch_all {
+            if let Type::Enum { id, .. } = &subject_ty {
+                if let Some(enum_info) = self.env.get_enum(*id) {
+                    for variant in &enum_info.variants {
+                        if !covered_variants.contains(&variant.name) {
+                            self.errors.push(
+                                Diagnostic::error(format!("non-exhaustive match: variant '{}' not covered", variant.name))
+                                    .with_span(span)
+                                    .with_code("E0006")
+                            );
+                        }
+                    }
+                }
+            } else if !subject_ty.is_error() {
+                self.errors.push(
+                    Diagnostic::error("non-exhaustive match: missing a catch-all arm ('_')")
+                        .with_span(span)
+                        .with_code("E0006")
+                );
+            }
+        }
+        
+        common_ty
     }
 }

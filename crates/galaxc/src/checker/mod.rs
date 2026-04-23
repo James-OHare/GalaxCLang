@@ -4,4 +4,4 @@
 mod env;
 mod check;
 
-pub use check::check;
+pub use check::{check, TypeChecker};

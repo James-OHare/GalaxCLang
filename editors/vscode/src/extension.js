@@ -102,6 +102,7 @@ function runGalaxCCheck(document, collection) {
                 );
                 const severity = d.severity?.toLowerCase() === 'warning' ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error;
                 const diag = new vscode.Diagnostic(range, d.message, severity);
+                diag.code = d.error_code;
                 diag.source = 'galaxc';
 
                 const fileUri = vscode.Uri.file(d.span.file);
