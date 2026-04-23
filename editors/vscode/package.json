@@ -59,6 +59,11 @@
         "category": "GalaxC"
       },
       {
+        "command": "galaxc.debugFile",
+        "title": "GalaxC: Debug current file",
+        "category": "GalaxC"
+      },
+      {
         "command": "galaxc.initProject",
         "title": "GalaxC: Initialize New Project",
         "category": "GalaxC"
@@ -73,6 +78,11 @@
       {
         "command": "galaxc.buildFile",
         "key": "ctrl+shift+b",
+        "when": "editorLangId == galaxc"
+      },
+      {
+        "command": "galaxc.debugFile",
+        "key": "f6",
         "when": "editorLangId == galaxc"
       }
     ],
